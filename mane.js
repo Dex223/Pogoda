@@ -60,34 +60,91 @@ const state = {
   tab: 'today'
 };
 
-// === ОПРЕДЕЛЕНИЕ ГОРОДА ПО IP ===
-async function getCityByIP() {
+// === КЭШИРОВАНИЕ ===
+const CACHE_KEY = 'weather_cache';
+const CACHE_DURATION = 10 * 60 * 1000; // 10 минут
+
+function getCachedWeather() {
   try {
-    // Бесплатный API, не требует ключа для базовых запросов
-    const response = await fetch('https://ipapi.co/json/');
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp < CACHE_DURATION) {
+      return data;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function setCachedWeather(data) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch (e) {}
+}
+
+// === ОПРЕДЕЛЕНИЕ ГОРОДА ПО IP (оптимизировано) ===
+async function getCityByIP() {
+  // Проверяем кэш геолокации
+  const cachedGeo = localStorage.getItem('geo_cache');
+  if (cachedGeo) {
+    try {
+      const { data, timestamp } = JSON.parse(cachedGeo);
+      if (Date.now() - timestamp < 24 * 60 * 60 * 1000) { // 24 часа
+        return data;
+      }
+    } catch (e) {}
+  }
+
+  try {
+    // Используем более быстрый сервис
+    const response = await fetch('https://ip-api.com/json/?lang=ru', { 
+      signal: AbortSignal.timeout(3000) // 3 секунды таймаут
+    });
     if (!response.ok) throw new Error('IP API failed');
     const data = await response.json();
     
-    return {
-      name: data.city || 'Санкт-Петербург',
-      country: data.country_name || 'Россия',
-      lat: data.latitude || 59.93,
-      lon: data.longitude || 30.33
-    };
+    if (data.status === 'success') {
+      const cityData = {
+        name: data.city || 'Санкт-Петербург',
+        country: data.country || 'Россия',
+        lat: data.lat || 59.93,
+        lon: data.lon || 30.33
+      };
+      
+      // Кэшируем геолокацию
+      localStorage.setItem('geo_cache', JSON.stringify({ 
+        data: cityData, 
+        timestamp: Date.now() 
+      }));
+      
+      return cityData;
+    }
   } catch (error) {
-    console.warn('[IP Geolocation] Ошибка или блокировщик рекламы, используем город по умолчанию:', error);
-    return null;
+    console.warn('[IP Geolocation] Ошибка:', error);
   }
+  return null;
 }
 
-// === ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ===
+// === ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ (оптимизирована) ===
 async function initApp() {
+  // Сразу показываем кэшированные данные, если есть
+  const cachedWeather = getCachedWeather();
+  if (cachedWeather) {
+    state.weather = cachedWeather;
+    state.loading = false;
+    state.apiSource = 'кэш';
+    state.lastUpdate = 'кэш';
+    render();
+  } else {
+    render(); // Показываем спиннер
+  }
+
   const savedCity = localStorage.getItem('weather_city');
   
   if (savedCity) {
     state.city = JSON.parse(savedCity);
   } else {
-    // Пытаемся определить город по IP
+    // Пытаемся определить город по IP (быстро, с таймаутом)
     const ipCity = await getCityByIP();
     if (ipCity) {
       state.city = ipCity;
@@ -95,47 +152,47 @@ async function initApp() {
     }
   }
   
-  loadWeather();
+  // Загружаем свежие данные
+  await loadWeather();
 }
 
-// === API: Open-Meteo (основной) ===
+// === API: Open-Meteo (оптимизирован) ===
 async function fetchOpenMeteo(lat, lon) {
-  console.log('[API-1] Open-Meteo: начинаем запрос...');
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const timeout = isMobile ? 5000 : 8000; // Меньше таймаут на мобильных
+  
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
   
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
   
   try {
     const r = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    console.log('[API-1] Open-Meteo: статус', r.status);
+    clearTimeout(timeoutId);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
-    console.log('[API-1] Open-Meteo: успех!');
     return { data, source: 'Open-Meteo' };
   } catch (e) {
-    clearTimeout(timeout);
-    console.error('[API-1] Open-Meteo: ошибка -', e.message);
+    clearTimeout(timeoutId);
     throw e;
   }
 }
 
-// === API: wttr.in (запасной) ===
+// === API: wttr.in (оптимизирован) ===
 async function fetchWttrIn(cityName) {
-  console.log('[API-2] wttr.in: начинаем запрос для', cityName);
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const timeout = isMobile ? 5000 : 8000;
+  
   const url = `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=ru`;
   
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
   
   try {
     const r = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    console.log('[API-2] wttr.in: статус', r.status);
+    clearTimeout(timeoutId);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
-    console.log('[API-2] wttr.in: успех!');
     
     const current = data.current_condition[0];
     const weatherCode = parseInt(current.weatherCode) || 3;
@@ -190,13 +247,12 @@ async function fetchWttrIn(cityName) {
       source: 'wttr.in'
     };
   } catch (e) {
-    clearTimeout(timeout);
-    console.error('[API-2] wttr.in: ошибка -', e.message);
+    clearTimeout(timeoutId);
     throw e;
   }
 }
 
-// === ЗАГРУЗКА ПОГОДЫ С АВТОПЕРЕКЛЮЧЕНИЕМ ===
+// === ЗАГРУЗКА ПОГОДЫ (оптимизирована) ===
 async function loadWeather() {
   state.loading = true;
   state.error = null;
@@ -204,14 +260,15 @@ async function loadWeather() {
   
   let apiResult = null;
   
+  // Пробуем Open-Meteo
   try {
     apiResult = await fetchOpenMeteo(state.city.lat, state.city.lon);
   } catch (e) {
-    console.warn('[FALLBACK] Open-Meteo не сработал, пробуем wttr.in...');
+    // Пробуем wttr.in
     try {
       apiResult = await fetchWttrIn(state.city.name);
     } catch (e2) {
-      console.error('[FALLBACK] wttr.in тоже не сработал:', e2.message);
+      // Оба API упали
     }
   }
   
@@ -220,14 +277,22 @@ async function loadWeather() {
     state.apiSource = apiResult.source;
     state.isDemo = false;
     state.lastUpdate = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    console.log('[OK] Погода загружена с', apiResult.source);
+    setCachedWeather(apiResult.data); // Кэшируем
   } else {
-    console.warn('[DEMO] Оба API не сработали, используем демо-данные');
-    state.weather = getMockWeather();
-    state.apiSource = 'демо';
-    state.isDemo = true;
-    state.lastUpdate = 'демо';
-    state.error = null;
+    // Если есть кэш, используем его вместо демо
+    const cachedWeather = getCachedWeather();
+    if (cachedWeather) {
+      state.weather = cachedWeather;
+      state.apiSource = 'кэш (ошибка сети)';
+      state.isDemo = false;
+      state.lastUpdate = 'кэш';
+    } else {
+      // Только если нет кэша, показываем демо
+      state.weather = getMockWeather();
+      state.apiSource = 'демо';
+      state.isDemo = true;
+      state.lastUpdate = 'демо';
+    }
   }
   
   try { localStorage.setItem('weather_city', JSON.stringify(state.city)); } catch(e){}
@@ -424,16 +489,34 @@ if (document.getElementById('searchModal')) {
   });
 }
 
-// === ПРИВЯЗКА К WINDOW (для onclick в HTML) ===
+// === ПРИВЯЗКА К WINDOW ===
 window.switchTab = switchTab;
 window.openSearch = openSearch;
 window.closeSearch = closeSearch;
 window.selectCity = selectCity;
 window.loadWeather = loadWeather;
 
-// === ЗАПУСК ===
-setInterval(() => {
-  if (!state.loading && state.tab === 'today') loadWeather();
-}, 60000);
+// === АВТООБНОВЛЕНИЕ (оптимизировано) ===
+let updateInterval;
+function startAutoUpdate() {
+  updateInterval = setInterval(() => {
+    // Не обновляем, если вкладка не активна
+    if (document.hidden) return;
+    if (!state.loading && state.tab === 'today') loadWeather();
+  }, 5 * 60 * 1000); // Обновление каждые 5 минут (вместо 1 минуты)
+}
 
-initApp(); // Запускаем через определение IP или localStorage
+// Останавливаем при скрытии вкладки
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clearInterval(updateInterval);
+  } else {
+    startAutoUpdate();
+    // Сразу обновляем при возврате
+    if (!state.loading) loadWeather();
+  }
+});
+
+// === ЗАПУСК ===
+startAutoUpdate();
+initApp();
