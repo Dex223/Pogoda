@@ -222,8 +222,8 @@ async function fetchWttrIn(cityName, attempt = 1) {
                 dailyTimes.push(day.date);
                 dailyMax.push(parseInt(day.maxtempC));
                 dailyMin.push(parseInt(day.mintempC));
-                dailyCodes.push(parseInt(day.hourly[4] ? .weatherCode) || 3);
-                dailyPrecip.push(parseInt(day.hourly[4] ? .chanceofrain) || 0);
+                dailyCodes.push(parseInt(day.hourly[4] ?.weatherCode) || 3);
+                dailyPrecip.push(parseInt(day.hourly[4] ?.chanceofrain) || 0);
                 dailyWind.push(parseInt(day.maxwindKmph) / 3.6);
             });
         }
