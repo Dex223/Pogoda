@@ -266,12 +266,12 @@ async function fetchWttrIn(cityName, attempt = 1) {
     }
 }
 
-async function fetchOpenWeather(lat,lon, attemp = 1) {
+async function fetchOpenWeather(lat, lon, attempt = 1) {
     const API_KEY = 'c1b63715d2e89b52206b332f25ffa38e';
     const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=ru`;
 
     try {
-        console.log('[API] OpenWeatherMap попытка ${attemp}.....');
+        console.log('[API] OpenWeatherMap попытка ${attempt}...');
         const response = await fetchWithTimeout(url, 15000);
         const data = await response.json();
 
@@ -288,12 +288,12 @@ async function fetchOpenWeather(lat,lon, attemp = 1) {
             relative_humidity_2m: now.main.humidity,
             apparent_temperature: now.main.feels_like,
             weather_code: weatherCode,
-            wind_speed_10m: now.wind?.spped || 0
+            wind_speed_10m: now.wind?.speed || 0
         };
 
         const hourlyTimes = [], hourlyTemps = [], hourlyCodes= [], hourlyVis = [];
         data.list.slice(0, 8).forEach(item => {
-            hourlyTImes.push(item.dt_txt.replace(' ', 'Т').slice(0,16));
+            hourlyTimes.push(item.dt_txt.replace(' ', 'T').slice(0,16));
             hourlyTemps.push(item.main.temp);
             hourlyCodes.push(mapOpenWeatherCode(item.weather[0]?.id));
             hourlyVis.push((item.visibility || 10000));
@@ -349,8 +349,8 @@ async function fetchOpenWeather(lat,lon, attemp = 1) {
             source: 'OpenWeatherMap'
         };
     }catch (e) {
-        console.warn('[API] OpenWeatherMap ошибка (попытка ${attempt}):'e,.message);
-        if(attemp < 2) {
+        console.warn('[API] OpenWeatherMap ошибка (попытка ${attempt}):'e.message);
+        if(attempt < 2) {
             await new Promise(r => setTimeout(r, 1000));
             return fetchOpenWeather(lat, lon, attempt + 1);
         }
