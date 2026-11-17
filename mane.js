@@ -349,7 +349,7 @@ async function fetchOpenWeather(lat, lon, attempt = 1) {
             source: 'OpenWeatherMap'
         };
     }catch (e) {
-        console.warn('[API] OpenWeatherMap ошибка (попытка ${attempt}):'e.message);
+        console.warn('[API] OpenWeatherMap ошибка (попытка ${attempt}):',e.message);
         if(attempt < 2) {
             await new Promise(r => setTimeout(r, 1000));
             return fetchOpenWeather(lat, lon, attempt + 1);
