@@ -70,7 +70,7 @@ const state = {
 
 
 const CACHE_KEY = 'weather_cache';
-const CACHE_DURATION = 15 * 60 * 1000; // 15 минут
+const CACHE_DURATION = 15 * 60 * 1000;
 
 function getCachedWeather() {
     try {
@@ -137,7 +137,7 @@ async function getCityByIP() {
                     name: "Моё местоположение",
                     country: '',
                     lat: pos.coords.latitude,
-                    lon: pos.coords.latitude
+                    lon: pos.coords.longitude
                 };
                 try { localStorage.setItem('geo_cache', JSON.stringify({ data: cityData, timestamp: Date.now() })); } catch (e) {}
                 console.log('[GEO] Координаты из браузера: ', cityData.lat, cityData.lon);
@@ -222,8 +222,8 @@ async function fetchWttrIn(cityName, attempt = 1) {
                 dailyTimes.push(day.date);
                 dailyMax.push(parseInt(day.maxtempC));
                 dailyMin.push(parseInt(day.mintempC));
-                dailyCodes.push(parseInt(day.hourly[4] ?.weatherCode) || 3);
-                dailyPrecip.push(parseInt(day.hourly[4] ?.chanceofrain) || 0);
+                dailyCodes.push(parseInt(day.hourly[4]?.weatherCode) || 3);
+                dailyPrecip.push(parseInt(day.hourly[4]?.chanceofrain) || 0);
                 dailyWind.push(parseInt(day.maxwindKmph) / 3.6);
             });
         }
@@ -268,7 +268,8 @@ async function fetchWttrIn(cityName, attempt = 1) {
 
 
 async function loadWeather() {
-    if (state.loading) return;
+   
+    if (state.loading && state.weather) return;
     state.loading = true;
     state.error = null;
     state.loadingMessage = 'Загружаем погоду .....';
@@ -298,15 +299,15 @@ async function loadWeather() {
             state.apiSource = 'кэш (ошибка сети)';
             state.isDemo = false;
             state.lastUpdate = 'кэш';
-            state.error = 'Не удалось обновить: ' + (lastError ? .message || 'нет связи');
-            console.log('[LOAD] Используем кэш')
+            state.error = 'Не удалось обновить: ' + (lastError?.message || 'нет связи');
+            console.log('[LOAD] Используем кэш');
         } else {
             state.weather = getMockWeather();
             state.apiSource = 'демо';
             state.isDemo = true;
             state.lastUpdate = 'демо';
-            state.error = 'API Недоступен: ' + (lastError ? .message || 'нет связи');
-            console.erro('[LOAD] Демо режим');
+            state.error = 'API Недоступен: ' + (lastError?.message || 'нет связи');
+            console.error('[LOAD] Демо режим');
         }
     }
     try { localStorage.setItem('weather_city', JSON.stringify(state.city)); } catch (e) {}
@@ -363,8 +364,8 @@ function renderToday() {
         '<div class="section-title">Почасовой прогноз</div>' +
         '<div class="hourly">' + [0, 1, 2, 3, 4].map(i => {
             const pos = startHour + i;
-            const time = i === 0 ? 'Сейчас' : (hourly.time[pos] ? .slice(11, 16) || '—');
-            return '<div class="hour-item"><div class="hour-time">' + time + '</div><div class="hour-icon">' + weatherSvg(hourly.weather_code[pos] ? ? 0) + '</div><div class="hour-temp">' + fmtTemp(hourly.temperature_2m[pos]) + '</div></div>';
+            const time = i === 0 ? 'Сейчас' : (hourly.time[pos]?.slice(11, 16) || '—');
+            return '<div class="hour-item"><div class="hour-time">' + time + '</div><div class="hour-icon">' + weatherSvg(hourly.weather_code[pos] ?? 0) + '</div><div class="hour-temp">' + fmtTemp(hourly.temperature_2m[pos]) + '</div></div>';
         }).join('') +
         '</div>' +
         '<div class="section-title">На 7 дней</div>' +
@@ -383,9 +384,9 @@ function renderForecast() {
     }
 
     const { daily } = state.weather;
-    const maxPrecip = Math.max(...(daily.precipitation_probability_max ? .slice(0, 5) || [0]));
-    const maxWind = Math.round(Math.max(...(daily.wind_speed_10m_max ? .slice(0, 5) || [0])));
-    const minTemp = Math.min(...(daily.temperature_2m_min ? .slice(0, 5) || [0]));
+    const maxPrecip = Math.max(...(daily.precipitation_probability_max?.slice(0, 5) || [0]));
+    const maxWind = Math.round(Math.max(...(daily.wind_speed_10m_max?.slice(0, 5) || [0])));
+    const minTemp = Math.min(...(daily.temperature_2m_min?.slice(0, 5) || [0]));
 
     let errorBanner = '';
     if (state.error && !state.loading) {
