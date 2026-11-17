@@ -160,7 +160,7 @@ async function fetchOpenMeteo(lat, lon, attempt = 1) {
 
     try {
         console.log(`[API] Open-Meteo попытка ${attempt}...`);
-        const response = await fetchWithTimeout(url, 15000);
+        const response = await fetchWithTimeout(url, 45000);
         const data = await response.json();
 
 
@@ -188,7 +188,7 @@ async function fetchWttrIn(cityName, attempt = 1) {
 
     try {
         console.log(`[API] wttr.in попытка ${attempt} для ${cityName}...`);
-        const response = await fetchWithTimeout(url, 12000);
+        const response = await fetchWithTimeout(url, 44000);
         const data = await response.json();
 
         if (!data.current_condition || !data.current_condition[0]) {
