@@ -160,7 +160,7 @@ async function fetchOpenMeteo(lat, lon, attempt = 1) {
 
     try {
         console.log(`[API] Open-Meteo попытка ${attempt}...`);
-        const response = await fetchWithTimeout(url, 45000);
+        const response = await fetchWithTimeout(url, 10000);
         const data = await response.json();
 
 
