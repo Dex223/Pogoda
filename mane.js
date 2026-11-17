@@ -160,7 +160,7 @@ async function fetchOpenMeteo(lat, lon, attempt = 1) {
 
     try {
         console.log(`[API] Open-Meteo попытка ${attempt}...`);
-        const response = await fetchWithTimeout(url, 10000);
+        const response = await fetchWithTimeout(url, 15000);
         const data = await response.json();
 
 
@@ -188,7 +188,7 @@ async function fetchWttrIn(cityName, attempt = 1) {
 
     try {
         console.log(`[API] wttr.in попытка ${attempt} для ${cityName}...`);
-        const response = await fetchWithTimeout(url, 7000);
+        const response = await fetchWithTimeout(url, 12000);
         const data = await response.json();
 
         if (!data.current_condition || !data.current_condition[0]) {
@@ -284,6 +284,16 @@ async function loadWeather() {
     } catch (e) {
         lastError = e;
         console.warn('[LOAD] Open-Meteo не сработал: ', e.message);
+    }
+    if(!apiResult && state.city.name){
+        try {
+            state.loadingMessage = 'Пробуем запасной источник ....';
+            render();
+            apiResult = await fetchWithTimeout(state.city.name);
+        }catch (e) {
+            lastError = e;
+            console.warn('[LOAD] wttr.in тоже не сработал:',e.message);
+        }
     }
     if (apiResult) {
         state.weather = apiResult.data;
