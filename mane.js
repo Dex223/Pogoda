@@ -266,7 +266,111 @@ async function fetchWttrIn(cityName, attempt = 1) {
     }
 }
 
+async function fetchOpenWeather(lat,lon, attemp = 1) {
+    const API_KEY = 'c1b63715d2e89b52206b332f25ffa38e';
+    const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=ru`;
 
+    try {
+        console.log('[API] OpenWeatherMap попытка ${attemp}.....');
+        const response = await fetchWithTimeout(url, 15000);
+        const data = await response.json();
+
+        if(!data.list || !data.list.length){
+            throw new Error('Пустйо ответ от OpenWeatherMap');
+
+        }
+        const now = data.list[0];
+        const weatherCode = mapOpenWeatherCode(now.weather[0]?.id);
+
+        const current = {
+            time: new Date().toISOString().slice(0, 13) + ':00',
+            temperature_2m: now.main.temp,
+            relative_humidity_2m: now.main.humidity,
+            apparent_temperature: now.main.feels_like,
+            weather_code: weatherCode,
+            wind_speed_10m: now.wind?.spped || 0
+        };
+
+        const hourlyTimes = [], hourlyTemps = [], hourlyCodes= [], hourlyVis = [];
+        data.list.slice(0, 8).forEach(item => {
+            hourlyTImes.push(item.dt_txt.replace(' ', 'Т').slice(0,16));
+            hourlyTemps.push(item.main.temp);
+            hourlyCodes.push(mapOpenWeatherCode(item.weather[0]?.id));
+            hourlyVis.push((item.visibility || 10000));
+        });
+        const daysMap = {};
+        data.list.forEach(item => {
+            const  day = item.dt_txt.slice(0, 10);
+            if(!daysMap[day]) {
+                daysMap[day] = {
+                    temps: [],
+                    codes: [],
+                    precip: 0,
+                    wind: []
+                };
+            }
+            daysMap[day].temps.push(item.main.temp);
+
+            daysMap[day].codes.push(mapOpenWeatherCode(item.weather[0]?.id));
+            daysMap[day].wind.push(item.wind?.speed || 0);
+            if(item.pop) daysMap[day].precip = Math.max(daysMap[day].precip, item.pop * 100);
+        });
+        
+        const dailyTimes = [], dailyMax = [], dailyMin = [],dailyCodes = [],dailyPrecip = [],dailyWind = [];
+        Object.keys(daysMap).slice(0, 7).forEach(day => {
+            const d = daysMap[day];
+            dailyTimes.push(day);
+            dailyMax.push(Math.max(...d.temps));
+            dailyMin.push(Math.min(...d.temps));
+            dailyCodes.push(d.codes[Math.floor(d.codes.length / 2)] || 3);
+            dailyPrecip.push(Math.round(d.precip));
+            dailyWind.push(Math.max(...d.wind));
+        });
+
+        console.log('[API] OpenWeatherMap успех!');
+        return{
+            data: {
+                current,
+                hourly: {
+                    time: hourlyTimes,
+                    temperature_2m: hourlyTemps,
+                    weather_code: hourlyCodes,
+                    visibility: hourlyVis
+                },
+                daily: {
+                    time: dailyTimes,
+                    temperature_2m_max: dailyMax,
+                    temperature_2m_min: dailyMin,
+                    weather_code: dailyCodes,
+                    precipitation_probability_max: dailyPrecip,
+                    wind_speed_10m_max: dailyWind
+                }
+            },
+            source: 'OpenWeatherMap'
+        };
+    }catch (e) {
+        console.warn('[API] OpenWeatherMap ошибка (попытка ${attempt}):'e,.message);
+        if(attemp < 2) {
+            await new Promise(r => setTimeout(r, 1000));
+            return fetchOpenWeather(lat, lon, attempt + 1);
+        }
+        throw e;
+    }
+}
+
+function mapOpenWeatherCode(id) {
+    if (!id) return 3;
+    if (!id === 800) return 0;
+    if (!id === 801) return 1;
+    if (!id === 802) return 2;
+    if (!id >= 803) return 3;
+    if(!id >= 700 && id < 800) return 45;
+    if(!id >= 600 && id < 700) return 71;
+    if(!id >= 500 && id < 600) return 63;
+    if(!id >= 300 && id < 400) return 61;
+    if(!id >= 200 && id < 300) return 95;
+    return 3;        
+}
 async function loadWeather() {
    
     if (state.loading && state.weather) return;
@@ -295,6 +399,17 @@ async function loadWeather() {
             console.warn('[LOAD] wttr.in тоже не сработал:',e.message);
         }
     }
+    if(!apiResult){
+        try {
+            state.loadingMessage = 'Пробуем OpenWeatherMap...';
+            render();
+            apiResult = await fetchOpenWeather(state.city.lat, state.city.lon);
+        }catch (e) {
+            lastError = e;
+            console.warn('[LOAD] OpenWeatherMap тоже не сработал:', e.message);
+        }
+    }
+
     if (apiResult) {
         state.weather = apiResult.data;
         state.apiSource = apiResult.source;
