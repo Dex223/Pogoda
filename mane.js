@@ -289,7 +289,7 @@ async function loadWeather() {
         try {
             state.loadingMessage = 'Пробуем запасной источник ....';
             render();
-            apiResult = await fetchWithTimeout(state.city.name);
+            apiResult = await fetchWttrIn(state.city.name);
         }catch (e) {
             lastError = e;
             console.warn('[LOAD] wttr.in тоже не сработал:',e.message);
