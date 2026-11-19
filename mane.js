@@ -616,24 +616,21 @@ function initRainMap() {
 }
 
 function loadRainViewerData() {
-    fetch('https://api.rainviewer.com/public/weather-maps.json')
-        .then(r => r.json())
-        .then(api => {
-            rainApiData = api;
-            rainMapFrames = (api.radar && api.radar.past) ? api.radar.past : [];
-            if (rainMapFrames.length) {
-                rainAnimationPos = rainMapFrames.length - 1;
-                showRainFrame(rainAnimationPos);
-            } else {
-                const ts = document.getElementById('rainTimestamp');
-                if (ts) ts.textContent = 'Нет данных радара';
-            }
-        })
-        .catch(e => {
-            console.warn('[RAIN] RainViewer error:', e);
-            const ts = document.getElementById('rainTimestamp');
-            if (ts) ts.textContent = 'Радар временно недоступен';
-        });
+    const API_KEY = 'c1b63715d2e89b52206b332f25ffa38e';
+    const owmPrecipLayer = L.tileLayer(
+        `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
+        {
+            opacity: 0.7,
+            maxZoom: 18,
+            zIndex: 10,
+            attribution: '© OpenWeatherMap'
+        }
+    );
+    owmPrecipLayer.addTo(rainMapInstance);
+    rainRadarLayer = owmPrecipLayer;
+
+    const ts = document.getElementById('rainTimestamp');
+    if (ts) ts.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 }
 
 function createRainLayer(frame) {
@@ -646,22 +643,10 @@ function createRainLayer(frame) {
 }
 
 function showRainFrame(pos) {
-    if (!rainMapInstance || !rainMapFrames.length) return;
-    while (pos < 0) pos += rainMapFrames.length;
-    while (pos >= rainMapFrames.length) pos -= rainMapFrames.length;
-    rainAnimationPos = pos;
-    const frame = rainMapFrames[pos];
     const tsEl = document.getElementById('rainTimestamp');
     if (tsEl) {
-        const t = new Date(frame.time * 1000);
-        tsEl.textContent = t.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        tsEl.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
-    if (rainRadarLayer) {
-        rainMapInstance.removeLayer(rainRadarLayer);
-        rainRadarLayer = null;
-    }
-    rainRadarLayer = createRainLayer(frame);
-    rainRadarLayer.addTo(rainMapInstance);
 }
 
 function rainMapPrev() {
