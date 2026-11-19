@@ -607,8 +607,8 @@ function initRainMap() {
         maxZoom: 12
     }).setView([lat, lon], 8);
    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap',
+    L.tileLayer('https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=2&lang=ru_RU', {
+        attribution: '© Яндекс',
         maxZoom: 12
     }).addTo(rainMapInstance);
     L.marker([lat, lon]).addTo(rainMapInstance).bindPopup(state.city.name).openPopup();
