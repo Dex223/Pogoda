@@ -142,7 +142,7 @@ async function getCityByIP() {
             (err) => {
                 console.warn('[GEO] Геолокация из браузера:', err.message);
                 resolve(null);
-            }, { timeout: 8000, maximumAge: 600000 }
+            }, { timeout: 4000, maximumAge: 600000 }
         );
     });
 }
@@ -154,7 +154,7 @@ async function fetchOpenMeteo(lat, lon, attempt = 1) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
     try {
         console.log(`[API] Open-Meteo попытка ${attempt}...`);
-        const response = await fetchWithTimeout(url, 10000);
+        const response = await fetchWithTimeout(url, 7000);
         const data = await response.json();
         if (!data.current || !data.daily) {
             throw new Error('Пустой ответ от API');
@@ -176,7 +176,7 @@ async function fetchWttrIn(cityName, attempt = 1) {
     const url = `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=ru`;
     try {
         console.log(`[API] wttr.in попытка ${attempt} для ${cityName}...`);
-        const response = await fetchWithTimeout(url, 10000);
+        const response = await fetchWithTimeout(url, 7000);
         const data = await response.json();
         if (!data.current_condition || !data.current_condition[0]) {
             throw new Error('Пустой ответ от wttr.in');
@@ -246,7 +246,7 @@ async function fetchOpenWeather(lat, lon, attempt = 1) {
     const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=ru`;
     try {
         console.log(`[API] OpenWeatherMap попытка ${attempt}...`);
-        const response = await fetchWithTimeout(url, 10000);
+        const response = await fetchWithTimeout(url, 7000);
         const data = await response.json();
         if (!data.list || !data.list.length) {
             throw new Error('Пустой ответ от OpenWeatherMap');
@@ -556,11 +556,41 @@ function renderRainMap() {
     return html;
 }
 
+function loadLeaflet(callback) {
+    if (typeof L !== 'undefined') {
+        callback();
+        return;
+    }
+    if (window._leafletLoading) {
+        window._leafletLoading.push(callback);
+        return;
+    }
+    window._leafletLoading = [callback];
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = function() {
+        const cbs = window._leafletLoading || [];
+        window._leafletLoading = null;
+        cbs.forEach(cb => cb());
+    };
+    script.onerror = function() {
+        window._leafletLoading = null;
+        const el = document.getElementById('rainMap');
+        if (el) el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#554B68;font-size:14px;padding:16px;text-align:center">Не удалось загрузить карту</div>';
+    };
+    document.head.appendChild(script);
+}
+
 function initRainMap() {
     const el = document.getElementById('rainMap');
     if (!el) return;
     if (typeof L === 'undefined') {
-        el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#554B68;font-size:14px;padding:20px;text-align:center">Карта недоступна (Leaflet не загрузился).<br>Проверьте интернет или обновите страницу.</div>';
+        el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#554B68;font-size:14px">Загрузка карты...</div>';
+        loadLeaflet(function() { initRainMap(); });
         return;
     }
     if (rainMapInstance) {
@@ -818,30 +848,35 @@ startAutoUpdate();
 initApp();
 
 async function initApp() {
+    // Быстрый старт: сначала показываем кэш или скелет, город из localStorage или дефолт
     const cachedWeather = getCachedWeather();
     if (cachedWeather) {
         state.weather = cachedWeather;
         state.loading = false;
         state.apiSource = 'кэш';
         state.lastUpdate = 'кэш';
-        render();
-    } else {
-        render();
     }
+
     const savedCity = localStorage.getItem('weather_city');
     if (savedCity) {
-        state.city = JSON.parse(savedCity);
-        console.log('[INIT] Город из localStorage:', state.city.name);
-    } else {
-        state.loadingMessage = 'Определяем город...';
-        render();
-        const ipCity = await getCityByIP();
-        if (ipCity) {
-            state.city = ipCity;
-            localStorage.setItem('weather_city', JSON.stringify(state.city));
-        } else {
-            console.log('[INIT] Город не определён, используем СПб');
-        }
+        try {
+            state.city = JSON.parse(savedCity);
+        } catch (e) {}
     }
+    // Сразу рисуем (не ждём геолокацию)
+    render();
+
+    // Геолокацию пробуем в фоне, только если город ещё дефолтный
+    if (!savedCity) {
+        getCityByIP().then(ipCity => {
+            if (ipCity && (ipCity.lat !== state.city.lat || ipCity.lon !== state.city.lon)) {
+                state.city = ipCity;
+                try { localStorage.setItem('weather_city', JSON.stringify(state.city)); } catch (e) {}
+                if (!state.loading) loadWeather();
+            }
+        }).catch(() => {});
+    }
+
+    // Загружаем погоду
     await loadWeather();
 }
