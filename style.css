@@ -185,3 +185,179 @@ body { display: flex; justify-content: center; }
 .legend-pressure .color-4 { background: #00FF00; }
 .legend-pressure .color-5 { background: #FFFF00; }
 .legend-pressure .color-6 { background: #FF0000; }
+.layer-buttons {
+    display: flex !important;
+    gap: 12px !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    margin-bottom: 12px !important;
+    padding: 8px !important;
+    flex-wrap: wrap !important;
+}
+
+.layer-btn {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 14px 18px !important;
+    border-radius: 14px !important;
+    border: 2px solid #D5CCEF !important;
+    cursor: pointer !important;
+    background: #F5F2FA !important;
+    color: #29213A !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    min-width: 90px !important;
+    line-height: 1.3 !important;
+    transition: all 0.2s !important;
+    font-family: inherit !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08) !important;
+}
+
+.layer-btn:hover {
+    border-color: #B8A9D4 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
+}
+
+.layer-btn .btn-icon {
+    font-size: 26px !important;
+    line-height: 1 !important;
+    display: block !important;
+}
+
+.layer-btn.active {
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+
+.layer-btn[data-type="temperature"].active {
+    background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+    border-color: #FF6B35 !important;
+}
+
+.layer-btn[data-type="precipitation"].active {
+    background: linear-gradient(135deg, #4A90E2, #6BA3E8) !important;
+    border-color: #4A90E2 !important;
+}
+
+.layer-btn[data-type="wind"].active {
+    background: linear-gradient(135deg, #7B68EE, #9B8AF0) !important;
+    border-color: #7B68EE !important;
+}
+
+.layer-btn[data-type="pressure"].active {
+    background: linear-gradient(135deg, #9B59B6, #B07CC6) !important;
+    border-color: #9B59B6 !important;
+}
+
+.map-legend {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    font-size: 12px;
+    max-width: 200px;
+    z-index: 1000;
+}
+
+.map-legend-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.map-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.map-legend-color {
+    width: 30px;
+    height: 15px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+}
+
+.legend-temp .color-1 { background: #0000FF; }
+.legend-temp .color-2 { background: #00FFFF; }
+.legend-temp .color-3 { background: #00FF00; }
+.legend-temp .color-4 { background: #FFFF00; }
+.legend-temp .color-5 { background: #FF8000; }
+.legend-temp .color-6 { background: #FF0000; }
+
+.legend-precip .color-1 { background: #FFFFFF; }
+.legend-precip .color-2 { background: #AADDFF; }
+.legend-precip .color-3 { background: #5599FF; }
+.legend-precip .color-4 { background: #0055FF; }
+.legend-precip .color-5 { background: #0000AA; }
+.legend-precip .color-6 { background: #000055; }
+
+.legend-wind .color-1 { background: #FFFFFF; }
+.legend-wind .color-2 { background: #AAFFAA; }
+.legend-wind .color-3 { background: #55FF55; }
+.legend-wind .color-4 { background: #FFFF00; }
+.legend-wind .color-5 { background: #FF8800; }
+.legend-wind .color-6 { background: #FF0000; }
+
+.legend-pressure .color-1 { background: #FF00FF; }
+.legend-pressure .color-2 { background: #0000FF; }
+.legend-pressure .color-3 { background: #00FFFF; }
+.legend-pressure .color-4 { background: #00FF00; }
+.legend-pressure .color-5 { background: #FFFF00; }
+.legend-pressure .color-6 { background: #FF0000; }
+
+.rain-bar-container {
+    flex: 1;
+    height: 8px;
+    background: #E8E2F4;
+    border-radius: 4px;
+    margin: 0 12px;
+    overflow: hidden;
+    min-width: 60px;
+}
+
+.rain-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4A90E2, #7B68EE);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.rain-value {
+    min-width: 50px;
+    text-align: right;
+    font-weight: 700;
+    color: #4A90E2;
+    font-size: 14px;
+}
+
+.rain-map {
+    position: relative;
+    width: 100%;
+    height: 400px;
+}
+
+.daily-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.day-name {
+    min-width: 100px;
+    font-weight: 600;
+    color: #29213A;
+}
