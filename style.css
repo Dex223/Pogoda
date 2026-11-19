@@ -92,9 +92,11 @@ body { display: flex; justify-content: center; }
 .rain-map-controls .ts { font-weight: 600; color: #29213A; }
 .rain-map-controls button { width: 36px; height: 36px; border-radius: 50%; background: #E8E2F4; border: 1px solid #C7B8DD; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #6940A2; }
 .rain-map-controls button:hover { background: #D6C9EA; }
-.rain-bar-container { flex: 1; height: 14px; background: #E8E2F4; border-radius: 7px; overflow: hidden; }
-.rain-bar { height: 100%; background: linear-gradient(to right, #527EBA, #6940A2); border-radius: 7px; transition: width 0.3s; }
-.rain-value { font-size: 14px; font-weight: 600; color: #29213A; min-width: 40px; text-align: right; }
+.rain-bar-container {flex: 1;height: 8px;background: #E8E2F4;border-radius: 4px;margin: 0 12px;overflow: hidden;min-width: 60px;}
+.rain-bar {height: 100%;background: linear-gradient(90deg, #4A90E2, #7B68EE);border-radius: 4px;transition: width 0.3s ease;}
+.daily-item {display: flex;align-items: center;padding: 12px 16px;background: #fff;border-radius: 8px;margin-bottom: 8px;box-shadow: 0 1px 3px rgba(0,0,0,0.1);}
+.day-name {min-width: 100px;font-weight: 600;color: #29213A;}
+.rain-value {min-width: 50px;text-align: right;font-weight: 700;color: #4A90E2;font-size: 14px;}
 @media (min-width: 768px) {
 .app { max-width: 800px; height: 90vh; margin-top: 5vh; border-radius: 24px; box-shadow: 0 20px 40px rgba(105,64,162,0.15); }
 .content { padding: 24px 32px 90px; }
