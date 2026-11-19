@@ -87,7 +87,7 @@ body { display: flex; justify-content: center; }
 .rain-map-container { padding: 12px 0; }
 .rain-map-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 .rain-map-city { display: flex; align-items: center; gap: 8px; padding: 8px 0; color: #6940A2; font-weight: 600; }
-.rain-map { width: 100%; height: 280px; border-radius: 16px; overflow: hidden; border: 1px solid #C7B8DD; margin: 12px 0 16px; background: #E8E2F4; }
+.rain-map { width: 100%; height: 320px; border-radius: 16px; overflow: hidden; border: 1px solid #C7B8DD; margin: 12px 0 16px; background: #E8E2F4; }
 .rain-map-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 13px; color: #554B68; }
 .rain-map-controls .ts { font-weight: 600; color: #29213A; }
 .rain-map-controls button { width: 36px; height: 36px; border-radius: 50%; background: #E8E2F4; border: 1px solid #C7B8DD; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #6940A2; }

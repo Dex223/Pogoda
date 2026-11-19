@@ -182,13 +182,13 @@ async function fetchWttrIn(cityName, attempt = 1) {
             throw new Error('Пустой ответ от wttr.in');
         }
         const current = data.current_condition[0];
-        const weatherCode = parseInt(current.weatherCode) || 3;
+        const weatherCode = mapWttrCode(current.weatherCode);
         const hourlyTimes = [], hourlyTemps = [], hourlyCodes = [], hourlyVis = [];
         if (data.weather && data.weather[0] && data.weather[0].hourly) {
             data.weather[0].hourly.forEach(h => {
                 hourlyTimes.push(h.time.padStart(4, '0'));
                 hourlyTemps.push(parseInt(h.tempC));
-                hourlyCodes.push(parseInt(h.weatherCode) || 3);
+                hourlyCodes.push(mapWttrCode(h.weatherCode));
                 hourlyVis.push(parseInt(h.visibility) * 1000);
             });
         }
@@ -198,7 +198,7 @@ async function fetchWttrIn(cityName, attempt = 1) {
                 dailyTimes.push(day.date);
                 dailyMax.push(parseInt(day.maxtempC));
                 dailyMin.push(parseInt(day.mintempC));
-                dailyCodes.push(parseInt(day.hourly[4]?.weatherCode) || 3);
+                dailyCodes.push(mapWttrCode(day.hourly[4]?.weatherCode));
                 dailyPrecip.push(parseInt(day.hourly[4]?.chanceofrain) || 0);
                 dailyWind.push(parseInt(day.maxwindKmph) / 3.6);
             });
@@ -319,6 +319,26 @@ function mapOpenWeatherCode(id) {
     if (id >= 500 && id < 600) return 63;
     if (id >= 300 && id < 400) return 61;
     if (id >= 200 && id < 300) return 95;
+    return 3;
+}
+
+function mapWttrCode(code) {
+    code = parseInt(code) || 3;
+    // WorldWeatherOnline / wttr.in codes → наши WMO-подобные
+    if (code === 113) return 0;          // Clear/Sunny
+    if (code === 116) return 1;          // Partly cloudy
+    if (code === 119) return 2;          // Cloudy
+    if (code === 122) return 3;          // Overcast
+    if (code === 143 || code === 248 || code === 260) return 45; // Mist / Fog
+    if (code === 176 || code === 263 || code === 266 || code === 293 || code === 296) return 61; // Light rain / drizzle / patchy
+    if (code === 299 || code === 302 || code === 353) return 63; // Moderate rain / showers
+    if (code === 305 || code === 308 || code === 356 || code === 359) return 65; // Heavy rain
+    if (code === 179 || code === 227 || code === 323 || code === 326 || code === 368) return 71; // Light snow
+    if (code === 230 || code === 329 || code === 332 || code === 335 || code === 338 || code === 371) return 75; // Heavy snow (use 71 svg)
+    if (code === 182 || code === 185 || code === 281 || code === 284 || code === 311 || code === 314 || code === 317 || code === 320 || code === 350 || code === 362 || code === 365 || code === 374 || code === 377) return 66; // Sleet / freezing (approx rain)
+    if (code === 200 || code === 386 || code === 389) return 95; // Thunder
+    if (code === 392 || code === 395) return 96; // Thunder + snow
+    if (code >= 350 && code < 400) return 80; // Showers fallback
     return 3;
 }
 
@@ -532,13 +552,17 @@ function renderRainMap() {
     });
     html += '</div></div>';
     html += '<div class="status">' + getStatusDot() + state.apiSource + ' · Обновлено: ' + (state.lastUpdate || '—') + '</div>';
-    setTimeout(initRainMap, 50);
+    setTimeout(initRainMap, 80);
     return html;
 }
 
 function initRainMap() {
     const el = document.getElementById('rainMap');
-    if (!el || typeof L === 'undefined') return;
+    if (!el) return;
+    if (typeof L === 'undefined') {
+        el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#554B68;font-size:14px;padding:20px;text-align:center">Карта недоступна (Leaflet не загрузился).<br>Проверьте интернет или обновите страницу.</div>';
+        return;
+    }
     if (rainMapInstance) {
         try { rainMapInstance.remove(); } catch (e) {}
         rainMapInstance = null;
@@ -546,12 +570,18 @@ function initRainMap() {
     }
     const lat = state.city.lat || 59.93;
     const lon = state.city.lon || 30.33;
-    rainMapInstance = L.map('rainMap', { zoomControl: true, attributionControl: true }).setView([lat, lon], 6);
+    // Зум побольше, чтобы было видно окрестности города как на скрине
+    rainMapInstance = L.map('rainMap', {
+        zoomControl: true,
+        attributionControl: true,
+        maxZoom: 12
+    }).setView([lat, lon], 8);
+    // Базовая карта
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
         maxZoom: 12
     }).addTo(rainMapInstance);
-    L.marker([lat, lon]).addTo(rainMapInstance).bindPopup(state.city.name);
+    L.marker([lat, lon]).addTo(rainMapInstance).bindPopup(state.city.name).openPopup();
     loadRainViewerData();
 }
 
@@ -572,14 +602,13 @@ function loadRainViewerData() {
         .catch(e => {
             console.warn('[RAIN] RainViewer error:', e);
             const ts = document.getElementById('rainTimestamp');
-            if (ts) ts.textContent = 'Радар недоступен';
+            if (ts) ts.textContent = 'Радар временно недоступен';
         });
 }
 
 function createRainLayer(frame) {
-    const size = 256;
-    return L.tileLayer(rainApiData.host + frame.path + '/' + size + '/{z}/{x}/{y}/2/1_1.png', {
-        opacity: 0.7,
+    return L.tileLayer(rainApiData.host + frame.path + '/256/{z}/{x}/{y}/2/1_1.png', {
+        opacity: 0.75,
         maxNativeZoom: 7,
         maxZoom: 12,
         zIndex: 10
@@ -606,12 +635,12 @@ function showRainFrame(pos) {
 }
 
 function rainMapPrev() {
-    if (rainAnimTimer) { clearTimeout(rainAnimTimer); rainAnimTimer = null; document.getElementById('rainPlayBtn').textContent = '▶'; }
+    if (rainAnimTimer) { clearTimeout(rainAnimTimer); rainAnimTimer = null; const b = document.getElementById('rainPlayBtn'); if (b) b.textContent = '▶'; }
     showRainFrame(rainAnimationPos - 1);
 }
 
 function rainMapNext() {
-    if (rainAnimTimer) { clearTimeout(rainAnimTimer); rainAnimTimer = null; document.getElementById('rainPlayBtn').textContent = '▶'; }
+    if (rainAnimTimer) { clearTimeout(rainAnimTimer); rainAnimTimer = null; const b = document.getElementById('rainPlayBtn'); if (b) b.textContent = '▶'; }
     showRainFrame(rainAnimationPos + 1);
 }
 
@@ -626,7 +655,7 @@ function rainMapPlayStop() {
     if (btn) btn.textContent = '⏸';
     function step() {
         showRainFrame(rainAnimationPos + 1);
-        rainAnimTimer = setTimeout(step, 600);
+        rainAnimTimer = setTimeout(step, 700);
     }
     step();
 }
@@ -634,6 +663,7 @@ function rainMapPlayStop() {
 window.rainMapPrev = rainMapPrev;
 window.rainMapNext = rainMapNext;
 window.rainMapPlayStop = rainMapPlayStop;
+
 
 function getStatusDot() {
     if (state.isDemo) return '<span class="demo-dot"></span>';
@@ -690,8 +720,11 @@ function dayLabel(dateStr, i) {
 
 function switchTab(tab) {
     if (state.tab === 'rain' && tab !== 'rain') {
-        if (rainAnimTimer) { clearTimeout(rainAnimTimer); rainAnimTimer = null; }
-        if (rainMapInstance) {
+        if (typeof rainAnimTimer !== 'undefined' && rainAnimTimer) {
+            clearTimeout(rainAnimTimer);
+            rainAnimTimer = null;
+        }
+        if (typeof rainMapInstance !== 'undefined' && rainMapInstance) {
             try { rainMapInstance.remove(); } catch (e) {}
             rainMapInstance = null;
             rainRadarLayer = null;
