@@ -324,7 +324,7 @@ function mapOpenWeatherCode(id) {
 
 function mapWttrCode(code) {
     code = parseInt(code) || 3;
-    // WorldWeatherOnline / wttr.in codes → наши WMO-подобные
+   
     if (code === 113) return 0;          // Clear/Sunny
     if (code === 116) return 1;          // Partly cloudy
     if (code === 119) return 2;          // Cloudy
@@ -600,13 +600,13 @@ function initRainMap() {
     }
     const lat = state.city.lat || 59.93;
     const lon = state.city.lon || 30.33;
-    // Зум побольше, чтобы было видно окрестности города как на скрине
+    
     rainMapInstance = L.map('rainMap', {
         zoomControl: true,
         attributionControl: true,
         maxZoom: 12
     }).setView([lat, lon], 8);
-    // Базовая карта
+   
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
         maxZoom: 12
@@ -848,7 +848,7 @@ startAutoUpdate();
 initApp();
 
 async function initApp() {
-    // Быстрый старт: сначала показываем кэш или скелет, город из localStorage или дефолт
+ 
     const cachedWeather = getCachedWeather();
     if (cachedWeather) {
         state.weather = cachedWeather;
@@ -863,10 +863,10 @@ async function initApp() {
             state.city = JSON.parse(savedCity);
         } catch (e) {}
     }
-    // Сразу рисуем (не ждём геолокацию)
+  
     render();
 
-    // Геолокацию пробуем в фоне, только если город ещё дефолтный
+   
     if (!savedCity) {
         getCityByIP().then(ipCity => {
             if (ipCity && (ipCity.lat !== state.city.lat || ipCity.lon !== state.city.lon)) {
@@ -877,6 +877,6 @@ async function initApp() {
         }).catch(() => {});
     }
 
-    // Загружаем погоду
+    state.loading = false;
     await loadWeather();
 }
