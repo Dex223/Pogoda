@@ -536,15 +536,19 @@ function renderRainMap() {
     html += '<div class="rain-map-title">Карта погоды</div>';
     html += '<div class="rain-map-city"><span>' + state.city.name + '</span></div>';
     html += '<div class="rain-map-controls" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px">';
+    html += '<div class="layer-buttons">';
     const layerButtons = [
-        { id: 'temperature', label: '🌡️ Температура', color: '#FF6B35' },
-        { id: 'precipitation', label: '🌧️ Осадки', color: '#4A90E2' },
-        { id: 'wind', label: '💨 Ветер', color: '#7B68EE' },
-        { id: 'pressure', label: '📊 Давление', color: '#9B59B6' }
+        { id: 'temperature', icon: '🌡️', label: 'Температура' },
+        { id: 'precipitation', icon: '🌧️', label: 'Осадки' },
+        { id: 'wind', icon: '💨', label: 'Ветер' },
+        { id: 'pressure', icon: '📊', label: 'Давление' }
     ];
     layerButtons.forEach(btn => {
-        const isActive = btn.id === activeLayerType ? 'background:' + btn.color + ';color:#fff;' : 'background:#E8E2F4;';
-        html += '<button onclick="switchWeatherLayer(\'' + btn.id + '\')" style="' + isActive + 'padding:8px 12px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600">' + btn.label + '</button>';
+        const isActive = btn.id === activeLayerType ? ' active' : '';
+        html += '<button class="layer-btn' + isActive + '" data-type="' + btn.id + '" onclick="switchWeatherLayer(\'' + btn.id + '\')">';
+        html += '<span class="btn-icon">' + btn.icon + '</span>';
+        html += '<span>' + btn.label + '</span>';
+        html += '</button>';
     });
     html += '</div>';
     
@@ -620,7 +624,7 @@ function initRainMap() {
     
     rainMapInstance = L.map('rainMap', {
         zoomControl: true,
-        attributionControl: true,
+        attributionControl: false,
         maxZoom: 12
     }).setView([60, 90], 4);
    
