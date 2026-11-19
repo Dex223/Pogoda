@@ -522,6 +522,8 @@ let rainApiData = null;
 let rainMapFrames = [];
 let rainAnimationPos = 0;
 let rainAnimTimer = null;
+let currentWeatherLayer = null;
+let activeLayerType = 'precipitation';
 
 function renderRainMap() {
     if (!state.weather) {
@@ -531,14 +533,21 @@ function renderRainMap() {
     const p = d.precipitation_probability_max || [];
     const max = Math.max(...p, 1);
     let html = '<div class="rain-map-container">';
-    html += '<div class="rain-map-title">Карта осадков</div>';
+    html += '<div class="rain-map-title">Карта погоды</div>';
     html += '<div class="rain-map-city"><span>' + state.city.name + '</span></div>';
-    html += '<div class="rain-map-controls">';
-    html += '<button onclick="rainMapPrev()" title="Назад">‹</button>';
-    html += '<span class="ts" id="rainTimestamp">Загрузка радара...</span>';
-    html += '<button id="rainPlayBtn" onclick="rainMapPlayStop()" title="Пуск/Пауза">▶</button>';
-    html += '<button onclick="rainMapNext()" title="Вперёд">›</button>';
+    html += '<div class="rain-map-controls" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px">';
+    const layerButtons = [
+        { id: 'temperature', label: '🌡️ Температура', color: '#FF6B35' },
+        { id: 'precipitation', label: '🌧️ Осадки', color: '#4A90E2' },
+        { id: 'wind', label: '💨 Ветер', color: '#7B68EE' },
+        { id: 'pressure', label: '📊 Давление', color: '#9B59B6' }
+    ];
+    layerButtons.forEach(btn => {
+        const isActive = btn.id === activeLayerType ? 'background:' + btn.color + ';color:#fff;' : 'background:#E8E2F4;';
+        html += '<button onclick="switchWeatherLayer(\'' + btn.id + '\')" style="' + isActive + 'padding:8px 12px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600">' + btn.label + '</button>';
+    });
     html += '</div>';
+    
     html += '<div id="rainMap" class="rain-map"></div>';
     html += '<div class="section-title">Вероятность осадков</div>';
     html += '<div class="daily-list">';
@@ -555,7 +564,15 @@ function renderRainMap() {
     setTimeout(initRainMap, 80);
     return html;
 }
+function switchWeatherLayer(type) {
+    activeLayerType = type;
+    if (rainMapInstance) {
+        loadWeatherLayer(type);
+    }
 
+    render();
+}
+window.switchWeatherLayer = switchWeatherLayer;
 function loadLeaflet(callback) {
     if (typeof L !== 'undefined') {
         callback();
@@ -605,41 +622,137 @@ function initRainMap() {
         zoomControl: true,
         attributionControl: true,
         maxZoom: 12
-    }).setView([lat, lon], 8);
+    }).setView([60, 90], 4);
    
     L.tileLayer('https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=2&lang=ru_RU', {
         attribution: '© Яндекс',
         maxZoom: 12
     }).addTo(rainMapInstance);
     L.marker([lat, lon]).addTo(rainMapInstance).bindPopup(state.city.name).openPopup();
-    loadRainViewerData();
+    loadWeatherLayer(activeLayerType);
 }
+
+function loadWeatherLayer(type) {
+    const API_KEY = 'c1b63715d2e89b52206b332f25ffa38e';
+    
+    // Удаляем старый слой
+    if (currentWeatherLayer) {
+        rainMapInstance.removeLayer(currentWeatherLayer);
+        currentWeatherLayer = null;
+    }
+    
+    const layerUrls = {
+        temperature: 'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=' + API_KEY,
+        precipitation: 'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=' + API_KEY,
+        wind: 'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=' + API_KEY,
+        pressure: 'https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=' + API_KEY
+    };
+    
+    const layerNames = {
+        temperature: 'Температура',
+        precipitation: 'Осадки',
+        wind: 'Ветер',
+        pressure: 'Давление'
+    };
+    
+    currentWeatherLayer = L.tileLayer(layerUrls[type], {
+        opacity: 0.7,
+        maxZoom: 18,
+        zIndex: 10,
+        attribution: '© OpenWeatherMap'
+    });
+    
+    currentWeatherLayer.addTo(rainMapInstance);
+    
+    const ts = document.getElementById('rainTimestamp');
+    if (ts) ts.textContent = layerNames[type] + ' · ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    
+    console.log('[RAIN] Загружен слой:', layerNames[type]);
+}
+
 
 function loadRainViewerData() {
+    loadWeatherLayer(activeLayerType);
+}function loadWeatherLayer(type) {
     const API_KEY = 'c1b63715d2e89b52206b332f25ffa38e';
-    const owmPrecipLayer = L.tileLayer(
-        `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
-        {
-            opacity: 0.7,
-            maxZoom: 18,
-            zIndex: 10,
-            attribution: '© OpenWeatherMap'
-        }
-    );
-    owmPrecipLayer.addTo(rainMapInstance);
-    rainRadarLayer = owmPrecipLayer;
-
+    
+    
+    if (currentWeatherLayer) {
+        rainMapInstance.removeLayer(currentWeatherLayer);
+        currentWeatherLayer = null;
+    }
+    
+    const layerUrls = {
+        temperature: 'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=' + API_KEY,
+        precipitation: 'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=' + API_KEY,
+        wind: 'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=' + API_KEY,
+        pressure: 'https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=' + API_KEY
+    };
+    
+    const layerNames = {
+        temperature: 'Температура',
+        precipitation: 'Осадки',
+        wind: 'Ветер',
+        pressure: 'Давление'
+    };
+    
+    currentWeatherLayer = L.tileLayer(layerUrls[type], {
+        opacity: 0.7,
+        maxZoom: 18,
+        zIndex: 10,
+        attribution: '© OpenWeatherMap'
+    });
+    
+    currentWeatherLayer.addTo(rainMapInstance);
+    
     const ts = document.getElementById('rainTimestamp');
-    if (ts) ts.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    if (ts) ts.textContent = layerNames[type] + ' · ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    
+    console.log('[RAIN] Загружен слой:', layerNames[type]);
 }
 
-function createRainLayer(frame) {
-    return L.tileLayer(rainApiData.host + frame.path + '/256/{z}/{x}/{y}/2/1_1.png', {
-        opacity: 0.75,
-        maxNativeZoom: 7,
-        maxZoom: 12,
-        zIndex: 10
+
+function loadWeatherLayer(type) {
+    const API_KEY = 'c1b63715d2e89b52206b332f25ffa38e';
+    
+    
+    if (currentWeatherLayer) {
+        rainMapInstance.removeLayer(currentWeatherLayer);
+        currentWeatherLayer = null;
+    }
+    
+    const layerUrls = {
+        temperature: 'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=' + API_KEY,
+        precipitation: 'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=' + API_KEY,
+        wind: 'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=' + API_KEY,
+        pressure: 'https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=' + API_KEY
+    };
+    
+    const layerNames = {
+        temperature: 'Температура',
+        precipitation: 'Осадки',
+        wind: 'Ветер',
+        pressure: 'Давление'
+    };
+    
+    currentWeatherLayer = L.tileLayer(layerUrls[type], {
+        opacity: 0.7,
+        maxZoom: 18,
+        zIndex: 10,
+        attribution: '© OpenWeatherMap'
     });
+    
+    currentWeatherLayer.addTo(rainMapInstance);
+    
+    const ts = document.getElementById('rainTimestamp');
+    if (ts) ts.textContent = layerNames[type] + ' · ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    
+    console.log('[RAIN] Загружен слой:', layerNames[type]);
+}
+
+
+function loadRainViewerData() {
+    loadWeatherLayer(activeLayerType);
 }
 
 function showRainFrame(pos) {
