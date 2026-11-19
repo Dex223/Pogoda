@@ -154,7 +154,7 @@ async function fetchOpenMeteo(lat, lon, attempt = 1) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&timezone=auto&forecast_days=7&wind_speed_unit=ms`;
     try {
         console.log(`[API] Open-Meteo попытка ${attempt}...`);
-        const response = await fetchWithTimeout(url, 7000);
+        const response = await fetchWithTimeout(url, 15000);
         const data = await response.json();
         if (!data.current || !data.daily) {
             throw new Error('Пустой ответ от API');
@@ -176,7 +176,7 @@ async function fetchWttrIn(cityName, attempt = 1) {
     const url = `https://wttr.in/${encodeURIComponent(cityName)}?format=j1&lang=ru`;
     try {
         console.log(`[API] wttr.in попытка ${attempt} для ${cityName}...`);
-        const response = await fetchWithTimeout(url, 7000);
+        const response = await fetchWithTimeout(url, 10000);
         const data = await response.json();
         if (!data.current_condition || !data.current_condition[0]) {
             throw new Error('Пустой ответ от wttr.in');
@@ -246,7 +246,7 @@ async function fetchOpenWeather(lat, lon, attempt = 1) {
     const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=ru`;
     try {
         console.log(`[API] OpenWeatherMap попытка ${attempt}...`);
-        const response = await fetchWithTimeout(url, 7000);
+        const response = await fetchWithTimeout(url, 10000);
         const data = await response.json();
         if (!data.list || !data.list.length) {
             throw new Error('Пустой ответ от OpenWeatherMap');
