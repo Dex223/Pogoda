@@ -568,10 +568,10 @@ function loadLeaflet(callback) {
     window._leafletLoading = [callback];
     const css = document.createElement('link');
     css.rel = 'stylesheet';
-    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    css.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
     document.head.appendChild(css);
     const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
     script.onload = function() {
         const cbs = window._leafletLoading || [];
         window._leafletLoading = null;
