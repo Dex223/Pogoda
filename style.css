@@ -108,3 +108,30 @@ body { display: flex; justify-content: center; }
 .hero { padding: 32px 24px 24px; }
 .hero-temp { font-size: 72px; }
 }
+.legend-temp .color-1 { background: #0000FF; }
+.legend-temp .color-2 { background: #00FFFF; }
+.legend-temp .color-3 { background: #00FF00; }
+.legend-temp .color-4 { background: #FFFF00; }
+.legend-temp .color-5 { background: #FF8000; }
+.legend-temp .color-6 { background: #FF0000; }
+
+.legend-precip .color-1 { background: #FFFFFF; }
+.legend-precip .color-2 { background: #AADDFF; }
+.legend-precip .color-3 { background: #5599FF; }
+.legend-precip .color-4 { background: #0055FF; }
+.legend-precip .color-5 { background: #0000AA; }
+.legend-precip .color-6 { background: #000055; }
+
+.legend-wind .color-1 { background: #FFFFFF; }
+.legend-wind .color-2 { background: #AAFFAA; }
+.legend-wind .color-3 { background: #55FF55; }
+.legend-wind .color-4 { background: #FFFF00; }
+.legend-wind .color-5 { background: #FF8800; }
+.legend-wind .color-6 { background: #FF0000; }
+
+.legend-pressure .color-1 { background: #FF00FF; }
+.legend-pressure .color-2 { background: #0000FF; }
+.legend-pressure .color-3 { background: #00FFFF; }
+.legend-pressure .color-4 { background: #00FF00; }
+.legend-pressure .color-5 { background: #FFFF00; }
+.legend-pressure .color-6 { background: #FF0000; }

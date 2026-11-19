@@ -715,28 +715,46 @@ function loadRainViewerData() {
 function loadWeatherLayer(type) {
     const API_KEY = 'c1b63715d2e89b52206b332f25ffa38e';
     
-    
     if (currentWeatherLayer) {
         rainMapInstance.removeLayer(currentWeatherLayer);
         currentWeatherLayer = null;
     }
     
+    const oldLegend = document.getElementById('mapLegend');
+    if (oldLegend) oldLegend.remove();
+    
     const layerUrls = {
         temperature: 'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=' + API_KEY,
-        precipitation: 'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=' + API_KEY,
+        precipitation: 'https://tile.openweathermap.org/map/precipitation/{z}/{x}/{y}.png?appid=' + API_KEY,
         wind: 'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=' + API_KEY,
         pressure: 'https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=' + API_KEY
     };
     
-    const layerNames = {
-        temperature: 'Температура',
-        precipitation: 'Осадки',
-        wind: 'Ветер',
-        pressure: 'Давление'
+    const legends = {
+        temperature: {
+            title: 'Температура (°C)',
+            colorClass: 'legend-temp',
+            labels: ['-30°', '-15°', '0°', '15°', '30°', '45°']
+        },
+        precipitation: {
+            title: 'Осадки (мм)',
+            colorClass: 'legend-precip',
+            labels: ['0', '1', '5', '10', '20', '50+']
+        },
+        wind: {
+            title: 'Ветер (м/с)',
+            colorClass: 'legend-wind',
+            labels: ['0', '5', '10', '15', '20', '30+']
+        },
+        pressure: {
+            title: 'Давление (гПа)',
+            colorClass: 'legend-pressure',
+            labels: ['960', '980', '1000', '1013', '1030', '1050+']
+        }
     };
     
     currentWeatherLayer = L.tileLayer(layerUrls[type], {
-        opacity: 0.7,
+        opacity: 0.8,
         maxZoom: 18,
         zIndex: 10,
         attribution: '© OpenWeatherMap'
@@ -744,10 +762,26 @@ function loadWeatherLayer(type) {
     
     currentWeatherLayer.addTo(rainMapInstance);
     
-    const ts = document.getElementById('rainTimestamp');
-    if (ts) ts.textContent = layerNames[type] + ' · ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    const legendData = legends[type];
+    const legendDiv = document.createElement('div');
+    legendDiv.id = 'mapLegend';
+    legendDiv.className = 'map-legend ' + legendData.colorClass;
     
-    console.log('[RAIN] Загружен слой:', layerNames[type]);
+    let html = '<div class="map-legend-title">' + legendData.title + '</div>';
+    for (let i = 0; i < legendData.labels.length; i++) {
+        html += '<div class="map-legend-row">';
+        html += '<div class="map-legend-color color-' + (i + 1) + '"></div>';
+        html += '<span>' + legendData.labels[i] + '</span>';
+        html += '</div>';
+    }
+    
+    legendDiv.innerHTML = html;
+    document.getElementById('rainMap').appendChild(legendDiv);
+    
+    const ts = document.getElementById('rainTimestamp');
+    if (ts) ts.textContent = legendData.title + ' · ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    
+    console.log('[RAIN] Загружен слой:', legendData.title);
 }
 
 
