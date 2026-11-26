@@ -125,8 +125,11 @@ async function getCityByIP() {
             }
         } catch (e) {}
     }
-    return new Promise((resolve) => {
-        if (!navigator.geolocation) { resolve(null); return; }
+    const browserGeo = await new Promise((resolve) => {
+        if(!navigator.geolocation){
+            resolve(null);
+            return;
+        }
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const cityData = {
@@ -135,16 +138,64 @@ async function getCityByIP() {
                     lat: pos.coords.latitude,
                     lon: pos.coords.longitude
                 };
-                try { localStorage.setItem('geo_cache', JSON.stringify({ data: cityData, timestamp: Date.now() })); } catch (e) {}
-                console.log('[GEO] Координаты из браузера:', cityData.lat, cityData.lon);
+                console.log("[GEO] Кординаты из браузера:",cityData.lat,cityData.lon);
                 resolve(cityData);
             },
             (err) => {
-                console.warn('[GEO] Геолокация из браузера:', err.message);
+                console.warn("[GEO] Геолокация браузера не сработала:",err.message);
                 resolve(null);
-            }, { timeout: 4000, maximumAge: 600000 }
+            },
+            { timeout: 5000, maximumAge: 600000 }            
         );
     });
+    if(browserGeo) {
+        try {
+            localStorage.setItem('geo_cache', JSON.stringify({data: browserGeo, timestamp: Date.now() }));
+            }catch (e) {}
+            return browserGeo;
+    }
+        try {
+            console.log("[GEO] Пробуем определить по IP...");
+            const response = await fetchWithTimeout('https://ipapi.co/json/', 6000);
+            const data = await response.json();
+            
+            if (data && data.latitude && data.longitude) {
+                const cityData = {
+                    name: data.city || data.region || "Моё местположение",
+                    coutnry: data.country_name || data.country || '',
+                    lat: data.latitude,
+                    lon: data.longitude
+                };
+                console.log('[GEO] Определенно по IP:',cityData.name, cityData.lat, cityData.lon);  
+                try {
+                    localStorage.setItem('geo-cache', JSON.stringify,({data: cityData, timestamp: Date.now() }));
+                }catch (e) {
+                    return cityData;
+                }
+            }
+        }catch (e) {
+            console.warn('[GEO]IP-геолокация не сработала:', e.message);
+        }
+       try {
+        const response = await fetchWithTimeout('https://ipwho.is/', 5000);
+        const data = await response.json();
+        if (data && data.success && data.latitude && data.longitude) {
+            const cityData = {
+                name: data.city || data.region || 'Моё местоположение',
+                country: data.country || '',
+                lat: data.latitude,
+                lon: data.longitude
+            };
+            console.log('[GEO] Определено через ipwho.is:', cityData.name);
+            try {
+                localStorage.setItem('geo_cache', JSON.stringify({ data: cityData, timestamp: Date.now() }));
+            } catch (e) {}
+            return cityData;
+        }
+    } catch (e) {
+        console.warn('[GEO] ipwho.is тоже не сработал:', e.message);
+    }
+    return null;
 }
 
 async function fetchOpenMeteo(lat, lon, attempt = 1) {
