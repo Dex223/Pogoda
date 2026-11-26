@@ -1059,7 +1059,6 @@ startAutoUpdate();
 initApp();
 
 async function initApp() {
- 
     const cachedWeather = getCachedWeather();
     if (cachedWeather) {
         state.weather = cachedWeather;
@@ -1074,18 +1073,23 @@ async function initApp() {
             state.city = JSON.parse(savedCity);
         } catch (e) {}
     }
-  
-    render();
 
-   
+    render();
     if (!savedCity) {
-        getCityByIP().then(ipCity => {
-            if (ipCity && (ipCity.lat !== state.city.lat || ipCity.lon !== state.city.lon)) {
-                state.city = ipCity;
+        const geoCity = await getCityByIP();
+
+        if (geoCity) {
+            if (geoCity.name === 'Моё местоположение') {
+                state.city = geoCity;
                 try { localStorage.setItem('weather_city', JSON.stringify(state.city)); } catch (e) {}
-                if (!state.loading) loadWeather();
+            } 
+            else {
+                console.log('[GEO] IP дал неточный город, предлагаем выбрать вручную');
+                setTimeout(() => openSearch(), 400);
             }
-        }).catch(() => {});
+        } else {
+            setTimeout(() => openSearch(), 400);
+        }
     }
 
     state.loading = false;
