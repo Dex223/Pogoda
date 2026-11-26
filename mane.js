@@ -145,7 +145,7 @@ async function getCityByIP() {
                 console.warn('[GEO] Геолокация браузера не сработала:', err.message);
                 resolve(null);
             },
-            { timeout: 5000, maximumAge: 600000 }
+            { timeout: 6000, maximumAge: 300000 }
         );
     });
 
@@ -156,32 +156,11 @@ async function getCityByIP() {
         return browserGeo;
     }
     try {
-        console.log('[GEO] Пробуем определить по IP (ipapi.co)...');
-        const response = await fetchWithTimeout('https://ipapi.co/json/', 6000);
-        const data = await response.json();
-
-        if (data && data.latitude && data.longitude && !data.error) {
-            const cityData = {
-                name: data.city || data.region || 'Моё местоположение',
-                country: data.country_name || data.country || '',
-                lat: data.latitude,
-                lon: data.longitude
-            };
-            console.log('[GEO] Определено по IP (ipapi.co):', cityData.name, cityData.lat, cityData.lon);
-            try {
-                localStorage.setItem('geo_cache', JSON.stringify({ data: cityData, timestamp: Date.now() }));
-            } catch (e) {}
-            return cityData;
-        }
-    } catch (e) {
-        console.warn('[GEO] ipapi.co не сработал:', e.message);
-    }
-    try {
         console.log('[GEO] Пробуем ipwho.is...');
-        const response = await fetchWithTimeout('https://ipwho.is/', 5000);
+        const response = await fetchWithTimeout('https://ipwho.is/', 6000);
         const data = await response.json();
 
-        if (data && data.success && data.latitude && data.longitude) {
+        if (data && data.success !== false && data.latitude && data.longitude) {
             const cityData = {
                 name: data.city || data.region || 'Моё местоположение',
                 country: data.country || '',
@@ -195,10 +174,51 @@ async function getCityByIP() {
             return cityData;
         }
     } catch (e) {
-        console.warn('[GEO] ipwho.is тоже не сработал:', e.message);
+        console.warn('[GEO] ipwho.is не сработал:', e.message);
+    }
+    try {
+        console.log('[GEO] Пробуем geojs.io...');
+        const response = await fetchWithTimeout('https://get.geojs.io/v1/ip/geo.json', 5000);
+        const data = await response.json();
+
+        if (data && data.latitude && data.longitude) {
+            const cityData = {
+                name: data.city || data.region || 'Моё местоположение',
+                country: data.country || '',
+                lat: parseFloat(data.latitude),
+                lon: parseFloat(data.longitude)
+            };
+            console.log('[GEO] Определено через geojs.io:', cityData.name, cityData.lat, cityData.lon);
+            try {
+                localStorage.setItem('geo_cache', JSON.stringify({ data: cityData, timestamp: Date.now() }));
+            } catch (e) {}
+            return cityData;
+        }
+    } catch (e) {
+        console.warn('[GEO] geojs.io не сработал:', e.message);
+    }
+    try {
+        console.log('[GEO] Пробуем ipapi.co через другой путь...');
+        const response = await fetchWithTimeout('https://ipapi.co/json/', 4000);
+        const data = await response.json();
+        if (data && data.latitude && data.longitude && !data.error) {
+            const cityData = {
+                name: data.city || data.region || 'Моё местоположение',
+                country: data.country_name || data.country || '',
+                lat: data.latitude,
+                lon: data.longitude
+            };
+            console.log('[GEO] ipapi.co сработал:', cityData.name);
+            try {
+                localStorage.setItem('geo_cache', JSON.stringify({ data: cityData, timestamp: Date.now() }));
+            } catch (e) {}
+            return cityData;
+        }
+    } catch (e) {
+        console.warn('[GEO] ipapi.co снова не сработал:', e.message);
     }
 
-    console.warn('[GEO] Не удалось определить местоположение');
+    console.warn('[GEO] Не удалось определить местоположение ни одним способом');
     return null;
 }
 
